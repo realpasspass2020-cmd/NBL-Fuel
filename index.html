@@ -507,14 +507,17 @@
     <button class="action-btn act-excel" onclick="downloadExcelSurvey()">
       📥 Excel สำรวจราคา/ปริมาณ
     </button>
+    <button class="action-btn act-excel" onclick="downloadExcelPDF()">
+      📋 Excel บันทึกตรวจสอบ (แบบ PDF)
+    </button>
 
     <div class="section-divider">ส่ง Google Form</div>
 
     <button class="action-btn act-form1" onclick="openForm1()">
       🔗 Form: ดีเซลเกินราคา (≥35 บ.)
     </button>
-    <button class="action-btn act-form2" onclick="openForm2()">
-      🔗 Form: ราคาสูงผิดปกติ
+    <button class="action-btn" style="background:#2a1f1f;color:#6b4040;border:1px solid #4a2a2a;cursor:not-allowed;opacity:.6" disabled>
+      🔒 Form: กักตุนน้ำมัน (รอ link ใหม่)
     </button>
 
     <button class="btn btn-secondary btn-full" onclick="goStep(1)">
@@ -529,10 +532,11 @@
 <script>
 // ---- STATE ----
 const fuels = [
-  { id: 'diesel',  name: 'ดีเซล',         color: '#f59e0b' },
-  { id: 'e91',     name: 'แก๊สโซฮอล์ 91', color: '#3b82f6' },
-  { id: 'e95',     name: 'แก๊สโซฮอล์ 95', color: '#8b5cf6' },
-  { id: 'benzin',  name: 'เบนซิน 95',      color: '#ef4444' },
+  { id: 'diesel',  name: 'ดีเซล',          color: '#f59e0b' },
+  { id: 'e91',     name: 'แก๊สโซฮอล์ 91',  color: '#3b82f6' },
+  { id: 'e95',     name: 'แก๊สโซฮอล์ 95',  color: '#8b5cf6' },
+  { id: 'e20',     name: 'แก๊สโซฮอล์ E20', color: '#22c55e' },
+  { id: 'benzin',  name: 'เบนซิน',          color: '#ef4444' },
 ];
 
 let currentStep = 1;
@@ -705,12 +709,12 @@ function downloadExcelSummary() {
     'ปัตตานี':'ภาคใต้','ยะลา':'ภาคใต้','นราธิวาส':'ภาคใต้','ตราด':'ภาคใต้',
   };
   const targetRegion = regionMap[d.province] || 'ภาคกลาง';
-  const headers = ['ลำดับที่','ชื่อสถานี','ตำบล/แขวง','อำเภอ/เขต','จังหวัด','เบอร์โทรศัพท์','พิกัด','เปิด/ปิด','จำนวนวันที่ปิด','ประเภทผู้ค้า','ดีเซล','แก๊สโซฮอล์ 91','แก๊สโซฮอล์ 95','เบนซิน','ปัญหาการขาดแคลน','คิวซื้อน้ำมัน','ปั๊มใกล้เคียง','หมายเหตุ'];
+  const headers = ['ลำดับที่','ชื่อสถานี','ตำบล/แขวง','อำเภอ/เขต','จังหวัด','เบอร์โทรศัพท์','พิกัด','เปิด/ปิด','จำนวนวันที่ปิด','ประเภทผู้ค้า','ดีเซล','แก๊สโซฮอล์ 91','แก๊สโซฮอล์ 95','แก๊สโซฮอล์ E20','เบนซิน','ปัญหาการขาดแคลน','คิวซื้อน้ำมัน','ปั๊มใกล้เคียง','หมายเหตุ'];
   const row = [
     1,
     d.station, d.subdistrict, d.district, d.province, d.phone, d.coords,
     d.status, d.closedays, d.trader,
-    d.fuels[0].status, d.fuels[1].status, d.fuels[2].status, d.fuels[3].status,
+    d.fuels[0].status, d.fuels[1].status, d.fuels[2].status, d.fuels[3].status, d.fuels[4].status,
     d.cause !== 'อื่น ๆ' ? d.cause : d.cause_other,
     d.queue + (d.queue_count ? ' ('+d.queue_count+' คัน)' : ''),
     d.nearby,
@@ -739,12 +743,12 @@ function downloadExcelSurvey() {
   const wb = XLSX.utils.book_new();
 
   // Sheet: แบบ 1 ราคาสูง
-  const headers1 = ['ลำดับ','ชื่อสถานีบริการ','เลขทะเบียน ม.11','ที่ตั้ง','link google map','ละติจูด,ลองจิจูด','แก๊สโซฮอล์ 95','แก๊สโซฮอล์ 91','เบนซิน 95','ดีเซล','ผลการตรวจสอบ','หมายเหตุ'];
+  const headers1 = ['ลำดับ','ชื่อสถานีบริการ','เลขทะเบียน ม.11','ที่ตั้ง','link google map','ละติจูด,ลองจิจูด','ดีเซล','แก๊สโซฮอล์ 91','แก๊สโซฮอล์ 95','แก๊สโซฮอล์ E20','เบนซิน','ผลการตรวจสอบ','หมายเหตุ'];
   const row1 = [
     1, d.station, '', `${d.subdistrict} ${d.district} ${d.province}`,
     `https://www.google.com/maps/search/?api=1&query=${d.coords.replace(' ','')}`,
     d.coords,
-    d.fuels[2].price, d.fuels[1].price, d.fuels[3].price, d.fuels[0].price,
+    d.fuels[0].price, d.fuels[1].price, d.fuels[2].price, d.fuels[3].price, d.fuels[4].price,
     d.remark, ''
   ];
   const ws1 = XLSX.utils.aoa_to_sheet([
@@ -797,20 +801,9 @@ function openForm1() {
   showToast('✅ เปิด Form ดีเซลเกินราคาแล้ว');
 }
 
-// ---- GOOGLE FORM 2: ราคาสูงผิดปกติ ----
+// ---- GOOGLE FORM 2: กักตุนน้ำมัน (รอ link ใหม่) ----
 function openForm2() {
-  const d = getData();
-  const location = `${d.station} ${d.subdistrict} ${d.district} ${d.province} ${d.coords}`.trim();
-  const cause = d.cause !== 'อื่น ๆ' ? d.cause : d.cause_other;
-  const params = new URLSearchParams({
-    'entry.province':   d.province,
-    'entry.date':       d.date,
-    'entry.station':    location,
-    'entry.cause':      cause,
-    'entry.remark':     d.remark,
-  });
-  window.open(`https://docs.google.com/forms/d/e/1FAIpQLSfyzMoz1_vh8ket7simts0xTLX_Gy9sm1NWjQSkqdfqJGyRPQ/viewform?${params}`, '_blank');
-  showToast('✅ เปิด Form ราคาสูงผิดปกติแล้ว');
+  showToast('⏳ รอ link Form ใหม่จากหน่วยงาน');
 }
 
 function formatDateUS(dateStr) {
@@ -825,6 +818,138 @@ function mapProvince(p) {
   // Form uses "จังหวัด + ชื่อ" format
   return 'จังหวัด' + p;
 }
+
+// ---- EXCEL PDF-STYLE (บันทึกการตรวจสอบ เหมือน PDF) ----
+function downloadExcelPDF() {
+  const d = getData();
+  const cause = d.cause !== 'อื่น ๆ' ? d.cause : d.cause_other;
+  const chk = (val, match) => val === match ? '☑' : '☐';
+
+  const rows = [
+    ['บันทึกการตรวจสอบการปฏิบัติตาม พ.ร.บ. การค้าน้ำมันเชื้อเพลิง พ.ศ. ๒๕๔๓'],
+    ['และที่แก้ไขเพิ่มเติมฯ (ฉบับที่ ๒) พ.ศ. ๒๕๕๐'],
+    [],
+    ['วันที่', d.date, '', 'เวลา', d.time],
+    ['ข้าพเจ้า', d.officer, '', 'ตำแหน่ง', ''],
+    ['สังกัด', '', '', '', ''],
+    ['โทรศัพท์', '', 'โทรสาร', '', 'ไปรษณีย์อิเล็กทรอนิกส์', ''],
+    [],
+    ['แบบฟอร์มตรวจสอบสถานีบริการน้ำมันกรณีขาดแคลนน้ำมันเชื้อเพลิง'],
+    [],
+    ['1. ข้อมูลการลงตรวจ'],
+    ['   วันที่ตรวจ', d.date],
+    ['   เวลา', d.time],
+    ['   หน่วยงานผู้ตรวจ', ''],
+    ['   ชื่อเจ้าหน้าที่ผู้ตรวจ', d.officer],
+    [],
+    ['2. ข้อมูลสถานีบริการ'],
+    ['   ชื่อสถานีบริการ', d.station],
+    ['   สถานะของสถานีบริการ', ''],
+    ['   ' + chk(d.status,'เปิด') + ' เปิดให้บริการ', '', chk(d.status,'ปิด') + ' ปิดให้บริการ'],
+    [],
+    ['   กรณีปิดให้บริการ (โปรดระบุจำนวนวันและเหตุผล)'],
+    ['   ' + chk(d.closedays,'1-3 วัน') + ' ปิดให้บริการ 1 – 3 วัน'],
+    ['   ' + chk(d.closedays,'3-7 วัน') + ' ปิดให้บริการ 3 – 7 วัน'],
+    ['   ' + chk(d.closedays,'>7 วัน')  + ' ปิดให้บริการ มากกว่า 7 วัน'],
+    [],
+    ['   บริษัทผู้ค้าน้ำมัน', d.company],
+    ['   ที่ตั้ง', `ตำบล ${d.subdistrict}  อำเภอ ${d.district}  จังหวัด ${d.province}`],
+    ['   ละติจูด,ลองจิจูด', d.coords],
+    ['   ผู้ให้ข้อมูล / ผู้จัดการสถานี', ''],
+    ['   เบอร์โทรศัพท์', d.phone],
+    [],
+    ['   ข้อมูลเชื้อเพลิง'],
+    ['   ชนิดน้ำมัน', 'ราคา (บาท/ลิตร)', 'ความจุถัง (ลิตร)', 'ปริมาณคงเหลือ (ลิตร)', 'ระดับคงเหลือ (%)', 'สถานะ'],
+    ...d.fuels.map(f => [
+      '   ' + f.name,
+      f.price || '',
+      '',
+      f.remain || '',
+      '',
+      `${chk(f.status,'ปกติ')} ปกติ  ${chk(f.status,'ใกล้หมด')} ใกล้หมด  ${chk(f.status,'หมด')} หมด`
+    ]),
+    [],
+    ['3. แหล่งจัดหาน้ำมัน'],
+    ['   รับจาก'],
+    ['   ' + chk(d.trader,'มาตรา 7')  + ' ม.7   ชื่อ', d.company],
+    ['   ' + chk(d.trader,'มาตรา 10') + ' ม.10  ชื่อ', ''],
+    ['   ' + chk(!['มาตรา 7','มาตรา 10'].includes(d.trader) && d.trader ? d.trader : '', d.trader) + ' อื่น'],
+    [],
+    ['   ปกติรับน้ำมัน'],
+    ['   ☐ ทุกวัน'],
+    ['   ☐ สัปดาห์ละ .......... เที่ยว'],
+    ['   ช่วงที่เกิดปัญหา  จำนวนเที่ยวที่ได้รับจริง .......... เที่ยว'],
+    [],
+    ['4. สาเหตุการขาดแคลน (จากการสอบถาม)'],
+    ['   ' + chk(cause,'คลังน้ำมันต้นทางไม่มีสินค้า') + ' คลังน้ำมันต้นทางไม่มีสินค้า'],
+    ['   ' + chk(cause,'ผู้ค้าน้ำมันจัดสรรลดลง')      + ' ผู้ค้าน้ำมันจัดสรรลดลง'],
+    ['   ' + chk(cause,'รถขนส่งไม่เพียงพอ')           + ' รถขนส่งไม่เพียงพอ'],
+    ['   ' + chk(cause,'ความต้องการใช้เพิ่มสูง')       + ' ความต้องการใช้น้ำมันเพิ่มสูง'],
+    ['   ' + chk(cause,'คิวโหลดคลังยาว')              + ' คิวโหลดคลังยาว'],
+    ['   ☐ อื่น ๆ', d.cause === 'อื่น ๆ' ? d.cause_other : ''],
+    [],
+    ['5. การประสานผู้ค้าน้ำมัน (กรณีขาดแคลน)'],
+    ['   ได้ประสานบริษัทผู้ค้าน้ำมันแล้วหรือไม่'],
+    ['   ☐ ประสานแล้ว'],
+    ['   โปรดระบุผลจากการประสาน', d.remark || ''],
+    ['   ☐ ยังไม่ได้ประสาน'],
+    ['   โปรดระบุ', ''],
+    [],
+    ['6. ผลกระทบในพื้นที่'],
+    ['   มีประชาชนต่อคิวซื้อน้ำมันหรือไม่'],
+    ['   ' + chk(d.queue,'ไม่มีคิว') + ' ไม่มี'],
+    ['   ' + chk(d.queue,'มีคิว')    + ' มี   (ประมาณ ' + (d.queue_count || '......') + ' คัน)'],
+    [],
+    ['   สถานีบริการใกล้เคียงมีน้ำมันหรือไม่'],
+    ['   ' + chk(d.nearby,'มีน้ำมัน')    + ' มี'],
+    ['   ' + chk(d.nearby,'ไม่มีน้ำมัน') + ' ไม่มี'],
+    [],
+    [],
+    ['(ลงชื่อ)', '................................', 'พนักงานเจ้าหน้าที่'],
+    ['', '(' + d.officer + ')'],
+    ['ตำแหน่ง', ''],
+    [],
+    ['─────────────────────────────────────────────────────────────────'],
+    [],
+    ['ข้าพเจ้า', '', 'ในฐานะเป็นเจ้าของ/กรรมการผู้จัดการ/ผู้จัดการ/ผู้แทน'],
+    ['ของ', d.station],
+    ['รับทราบการแจ้งข้อกำหนดและยินยอมปฏิบัติให้เป็นไปตามข้อกำหนดของพระราชบัญญัติการค้าน้ำมันเชื้อเพลิง พ.ศ. ๒๕๔๓'],
+    [],
+    ['(ลงชื่อ)', '................................'],
+    ['ตำแหน่ง', ''],
+  ];
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // Column widths
+  ws['!cols'] = [
+    { wch: 48 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 36 }
+  ];
+
+  // Style header rows (bold)
+  const boldRows = [0, 1, 8, 10, 16, 32, 42, 49, 55, 62];
+  boldRows.forEach(r => {
+    const cellRef = XLSX.utils.encode_cell({ r, c: 0 });
+    if (ws[cellRef]) {
+      ws[cellRef].s = { font: { bold: true, sz: r < 3 ? 13 : 12 } };
+    }
+  });
+
+  // Fuel table header row bold
+  const fuelHeaderRow = rows.findIndex(r => r[0] === '   ชนิดน้ำมัน');
+  if (fuelHeaderRow >= 0) {
+    for (let c = 0; c < 6; c++) {
+      const ref = XLSX.utils.encode_cell({ r: fuelHeaderRow, c });
+      if (ws[ref]) ws[ref].s = { font: { bold: true } };
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, 'บันทึกตรวจสอบ');
+  XLSX.writeFile(wb, `บันทึกตรวจสอบ_${d.station || 'สถานี'}_${d.date}.xlsx`);
+  showToast('✅ ดาวน์โหลด Excel บันทึกตรวจสอบแล้ว');
+}
+
 
 function showToast(msg) {
   const t = document.getElementById('toast');
