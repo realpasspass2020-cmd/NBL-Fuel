@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ตรวจสถานีน้ำมัน</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222535;
+    --border: rgba(255,255,255,0.08);
+    --accent: #f59e0b;
+    --accent2: #3b82f6;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --danger: #ef4444;
+    --success: #22c55e;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+  }
+
+  header h1 { font-size: 16px; font-weight: 600; }
+  header p { font-size: 12px; color: var(--muted); }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width .4s ease;
+    border-radius: 2px;
+  }
+
+  .container { padding: 16px; max-width: 480px; margin: 0 auto; }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .step-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .step-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+  .field label span.req { color: var(--danger); margin-left: 3px; }
+
+  input[type="text"], input[type="tel"], input[type="date"], input[type="number"], select, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 11px 13px;
+    color: var(--text);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color .2s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent2);
+  }
+  input::placeholder { color: var(--muted); font-size: 14px; }
+  select option { background: #222535; color: var(--text); }
+  textarea { resize: none; height: 80px; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .radio-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .radio-btn {
+    flex: 1; min-width: 80px;
+    padding: 9px 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-align: center;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .15s;
+    color: var(--muted);
+    user-select: none;
+    position: relative;
+  }
+  .radio-btn input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .radio-btn.selected { border-color: var(--accent); color: var(--accent); background: rgba(245,158,11,.1); }
+  .radio-btn.sel-green.selected { border-color: var(--success); color: var(--success); background: rgba(34,197,94,.1); }
+  .radio-btn.sel-red.selected { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,.1); }
+
+  .fuel-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .fuel-name { font-weight: 600; font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .fuel-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .fuel-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .fuel-row .field { margin-bottom: 0; }
+  .fuel-row .field label { font-size: 11px; }
+  .fuel-row input { padding: 8px 10px; font-size: 14px; }
+  .status-row { display: flex; gap: 6px; }
+  .status-btn {
+    flex: 1; padding: 6px 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px; text-align: center;
+    cursor: pointer; color: var(--muted);
+    transition: all .15s; user-select: none;
+  }
+  .status-btn.s-normal.active { border-color: var(--success); color: var(--success); background: rgba(34,197,94,.1); }
+  .status-btn.s-low.active { border-color: var(--accent); color: var(--accent); background: rgba(245,158,11,.1); }
+  .status-btn.s-empty.active { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,.1); }
+
+  .section-divider {
+    font-size: 12px; font-weight: 600;
+    color: var(--muted); letter-spacing: .06em;
+    text-transform: uppercase;
+    margin: 18px 0 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-divider::after {
+    content: '';flex: 1;
+    height: 1px; background: var(--border);
+  }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 20px; }
+  .btn {
+    flex: 1; padding: 13px;
+    border: none; border-radius: var(--radius);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all .15s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:active { transform: scale(.97); background: #d97706; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:active { transform: scale(.97); }
+  .btn-success { background: var(--success); color: #000; }
+  .btn-blue { background: var(--accent2); color: #fff; }
+  .btn-blue:active { transform: scale(.97); }
+  .btn-full { flex: none; width: 100%; margin-top: 10px; }
+
+  .summary-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .summary-title { font-size: 12px; color: var(--muted); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .summary-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-val { color: var(--accent); font-weight: 500; }
+
+  .action-btn {
+    width: 100%;
+    padding: 14px;
+    border: none; border-radius: var(--radius);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-bottom: 10px;
+    transition: all .15s;
+    text-decoration: none;
+  }
+  .action-btn:active { transform: scale(.98); }
+  .act-excel { background: #166534; color: #86efac; border: 1px solid #16a34a; }
+  .act-form1 { background: #1e3a5f; color: #93c5fd; border: 1px solid #2563eb; }
+  .act-form2 { background: #3b1f5e; color: #c4b5fd; border: 1px solid #7c3aed; }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--success); color: #000;
+    padding: 10px 20px; border-radius: 20px;
+    font-size: 14px; font-weight: 600;
+    opacity: 0; transition: opacity .3s;
+    pointer-events: none; z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  .chip {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 6px; font-size: 11px; font-weight: 600;
+    background: rgba(245,158,11,.15); color: var(--accent);
+    margin-left: 6px;
+  }
+
+  .geo-btn {
+    padding: 10px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--accent2);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    margin-top: 6px; transition: all .15s;
+  }
+  .geo-btn:active { transform: scale(.98); }
+
+  .info-note {
+    background: rgba(59,130,246,.1);
+    border: 1px solid rgba(59,130,246,.3);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-size: 13px; color: #93c5fd;
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-icon">⛽</div>
+  <div>
+    <h1>ตรวจสถานีน้ำมัน</h1>
+    <p id="step-info">ขั้นตอน 1 จาก 4</p>
+  </div>
+</header>
+<div class="progress-bar">
+  <div class="progress-fill" id="progress" style="width:25%"></div>
+</div>
+
+<div class="container">
+
+  <!-- STEP 1: ข้อมูลผู้ตรวจ + สถานี -->
+  <div class="step active" id="step1">
+    <div class="step-label">ขั้นตอน 1 / 4</div>
+    <div class="step-title">ข้อมูลการตรวจ</div>
+
+    <div class="field">
+      <label>วันที่ตรวจ<span class="req">*</span></label>
+      <input type="date" id="f_date">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>เวลา</label>
+        <input type="text" id="f_time" placeholder="09:00">
+      </div>
+      <div class="field">
+        <label>จังหวัด<span class="req">*</span></label>
+        <select id="f_province">
+          <option value="">เลือก...</option>
+          <option>กรุงเทพมหานคร</option><option>กระบี่</option><option>กาญจนบุรี</option>
+          <option>กาฬสินธุ์</option><option>กำแพงเพชร</option><option>ขอนแก่น</option>
+          <option>จันทบุรี</option><option>ฉะเชิงเทรา</option><option>ชลบุรี</option>
+          <option>ชัยนาท</option><option>ชัยภูมิ</option><option>ชุมพร</option>
+          <option>เชียงราย</option><option>เชียงใหม่</option><option>ตรัง</option>
+          <option>ตราด</option><option>ตาก</option><option>นครนายก</option>
+          <option>นครปฐม</option><option>นครพนม</option><option>นครราชสีมา</option>
+          <option>นครศรีธรรมราช</option><option>นครสวรรค์</option><option>นนทบุรี</option>
+          <option>นราธิวาส</option><option>น่าน</option><option>บึงกาฬ</option>
+          <option>บุรีรัมย์</option><option>ปทุมธานี</option><option>ประจวบคีรีขันธ์</option>
+          <option>ปราจีนบุรี</option><option>ปัตตานี</option><option>พระนครศรีอยุธยา</option>
+          <option>พะเยา</option><option>พังงา</option><option>พัทลุง</option>
+          <option>พิจิตร</option><option>พิษณุโลก</option><option>เพชรบุรี</option>
+          <option>เพชรบูรณ์</option><option>แพร่</option><option>ภูเก็ต</option>
+          <option>มหาสารคาม</option><option>มุกดาหาร</option><option>แม่ฮ่องสอน</option>
+          <option>ยโสธร</option><option>ยะลา</option><option>ร้อยเอ็ด</option>
+          <option>ระนอง</option><option>ระยอง</option><option>ราชบุรี</option>
+          <option>ลพบุรี</option><option>ลำปาง</option><option>ลำพูน</option>
+          <option>เลย</option><option>ศรีสะเกษ</option><option>สกลนคร</option>
+          <option>สงขลา</option><option>สตูล</option><option>สมุทรปราการ</option>
+          <option>สมุทรสงคราม</option><option>สมุทรสาคร</option><option>สระแก้ว</option>
+          <option>สระบุรี</option><option>สิงห์บุรี</option><option>สุโขทัย</option>
+          <option>สุพรรณบุรี</option><option>สุราษฎร์ธานี</option><option>สุรินทร์</option>
+          <option>หนองคาย</option><option>หนองบัวลำภู</option><option>อ่างทอง</option>
+          <option>อำนาจเจริญ</option><option>อุดรธานี</option><option>อุตรดิตถ์</option>
+          <option>อุทัยธานี</option><option>อุบลราชธานี</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>ชื่อเจ้าหน้าที่<span class="req">*</span></label>
+      <input type="text" id="f_officer" placeholder="ชื่อ-นามสกุล">
+    </div>
+
+    <div class="section-divider">ข้อมูลสถานีบริการ</div>
+
+    <div class="field">
+      <label>ชื่อสถานีบริการ<span class="req">*</span></label>
+      <input type="text" id="f_station" placeholder="เช่น ปตท. สาขา...">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>ตำบล/แขวง</label>
+        <input type="text" id="f_subdistrict" placeholder="">
+      </div>
+      <div class="field">
+        <label>อำเภอ/เขต</label>
+        <input type="text" id="f_district" placeholder="">
+      </div>
+    </div>
+    <div class="field">
+      <label>เบอร์โทรสถานี</label>
+      <input type="tel" id="f_phone" placeholder="0x-xxxx-xxxx">
+    </div>
+    <div class="field">
+      <label>บริษัทผู้ค้าน้ำมัน</label>
+      <select id="f_company">
+        <option value="">เลือก...</option>
+        <option>ปตท.</option><option>เชลล์</option><option>เอสโซ่</option>
+        <option>บางจาก</option><option>คาลเท็กซ์</option><option>ซัสโก้</option>
+        <option>ไทยออยล์</option><option>อิรพค</option><option>อื่น ๆ</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>ประเภทผู้ค้า</label>
+      <div class="radio-group">
+        <label class="radio-btn" onclick="selectRadio(this,'trader','มาตรา 7')">
+          <input type="radio" name="trader" value="มาตรา 7">มาตรา 7
+        </label>
+        <label class="radio-btn" onclick="selectRadio(this,'trader','มาตรา 10')">
+          <input type="radio" name="trader" value="มาตรา 10">มาตรา 10
+        </label>
+        <label class="radio-btn" onclick="selectRadio(this,'trader','มาตรา 11')">
+          <input type="radio" name="trader" value="มาตรา 11">มาตรา 11
+        </label>
+      </div>
+    </div>
+    <div class="field">
+      <label>ละติจูด, ลองจิจูด</label>
+      <input type="text" id="f_coords" placeholder="13.xxxxx, 100.xxxxx">
+      <button class="geo-btn" onclick="getGPS()">📍 ดึงพิกัด GPS อัตโนมัติ</button>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goStep(2)">ถัดไป →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: สถานะสถานี + น้ำมัน -->
+  <div class="step" id="step2">
+    <div class="step-label">ขั้นตอน 2 / 4</div>
+    <div class="step-title">สถานะน้ำมัน</div>
+
+    <div class="field">
+      <label>สถานะสถานี<span class="req">*</span></label>
+      <div class="radio-group">
+        <label class="radio-btn sel-green" onclick="selectRadio(this,'status','เปิด')">
+          <input type="radio" name="status" value="เปิด">✓ เปิดบริการ
+        </label>
+        <label class="radio-btn sel-red" onclick="selectRadio(this,'status','ปิด')">
+          <input type="radio" name="status" value="ปิด">✕ ปิดบริการ
+        </label>
+      </div>
+    </div>
+
+    <div id="close-detail" style="display:none">
+      <div class="field">
+        <label>จำนวนวันที่ปิด</label>
+        <div class="radio-group">
+          <label class="radio-btn" onclick="selectRadio(this,'closedays','1-3 วัน')"><input type="radio" name="closedays">1-3 วัน</label>
+          <label class="radio-btn" onclick="selectRadio(this,'closedays','3-7 วัน')"><input type="radio" name="closedays">3-7 วัน</label>
+          <label class="radio-btn" onclick="selectRadio(this,'closedays','>7 วัน')"><input type="radio" name="closedays">&gt;7 วัน</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider">ข้อมูลเชื้อเพลิง</div>
+
+    <div id="fuel-cards"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(1)">← ย้อนกลับ</button>
+      <button class="btn btn-primary" onclick="goStep(3)">ถัดไป →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: สาเหตุ + ผลกระทบ -->
+  <div class="step" id="step3">
+    <div class="step-label">ขั้นตอน 3 / 4</div>
+    <div class="step-title">สาเหตุ &amp; ผลกระทบ</div>
+
+    <div class="field">
+      <label>สาเหตุการขาดแคลน</label>
+      <div class="radio-group" style="flex-direction:column">
+        <label class="radio-btn" style="text-align:left;padding:8px 12px" onclick="selectRadio(this,'cause','คลังต้นทางไม่มีสินค้า')"><input type="radio" name="cause">คลังต้นทางไม่มีสินค้า</label>
+        <label class="radio-btn" style="text-align:left;padding:8px 12px" onclick="selectRadio(this,'cause','ผู้ค้าน้ำมันจัดสรรลดลง')"><input type="radio" name="cause">ผู้ค้าน้ำมันจัดสรรลดลง</label>
+        <label class="radio-btn" style="text-align:left;padding:8px 12px" onclick="selectRadio(this,'cause','รถขนส่งไม่เพียงพอ')"><input type="radio" name="cause">รถขนส่งไม่เพียงพอ</label>
+        <label class="radio-btn" style="text-align:left;padding:8px 12px" onclick="selectRadio(this,'cause','ความต้องการใช้เพิ่มสูง')"><input type="radio" name="cause">ความต้องการใช้เพิ่มสูง</label>
+        <label class="radio-btn" style="text-align:left;padding:8px 12px" onclick="selectRadio(this,'cause','คิวโหลดคลังยาว')"><input type="radio" name="cause">คิวโหลดคลังยาว</label>
+        <label class="radio-btn" style="text-align:left;padding:8px 12px" onclick="selectRadio(this,'cause','อื่น ๆ')"><input type="radio" name="cause">อื่น ๆ</label>
+      </div>
+    </div>
+
+    <div class="field" id="cause-other-box" style="display:none">
+      <label>ระบุสาเหตุอื่น</label>
+      <input type="text" id="f_cause_other" placeholder="ระบุ...">
+    </div>
+
+    <div class="field">
+      <label>มีคิวซื้อน้ำมันหรือไม่?</label>
+      <div class="radio-group">
+        <label class="radio-btn sel-red" onclick="selectRadio(this,'queue','มีคิว')"><input type="radio" name="queue">มีคิว</label>
+        <label class="radio-btn sel-green" onclick="selectRadio(this,'queue','ไม่มีคิว')"><input type="radio" name="queue">ไม่มีคิว</label>
+      </div>
+    </div>
+
+    <div class="field" id="queue-count-box" style="display:none">
+      <label>ประมาณกี่คัน?</label>
+      <input type="number" id="f_queue_count" placeholder="จำนวนคัน" min="0">
+    </div>
+
+    <div class="field">
+      <label>ปั๊มใกล้เคียงมีน้ำมันหรือไม่?</label>
+      <div class="radio-group">
+        <label class="radio-btn sel-green" onclick="selectRadio(this,'nearby','มีน้ำมัน')"><input type="radio" name="nearby">มีน้ำมัน</label>
+        <label class="radio-btn sel-red" onclick="selectRadio(this,'nearby','ไม่มีน้ำมัน')"><input type="radio" name="nearby">ไม่มีน้ำมัน</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>ราคาดีเซลที่พบ (บาท/ลิตร)</label>
+      <input type="number" id="f_diesel_price" placeholder="ใส่ราคา เช่น 33.94" step="0.01">
+    </div>
+
+    <div class="field">
+      <label>หมายเหตุ / การดำเนินการของ สพจ.</label>
+      <textarea id="f_remark" placeholder="เช่น แจ้งพาณิชย์จังหวัด / แจ้งความดำเนินคดี..."></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(2)">← ย้อนกลับ</button>
+      <button class="btn btn-primary" onclick="goStep(4)">สรุป &amp; ส่ง →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: สรุป + ส่ง -->
+  <div class="step" id="step4">
+    <div class="step-label">ขั้นตอน 4 / 4</div>
+    <div class="step-title">ส่งข้อมูล</div>
+
+    <div class="info-note">
+      ✅ กรอกข้อมูลเรียบร้อยแล้ว กดปุ่มด้านล่างเพื่อส่งไปทุกที่พร้อมกัน
+    </div>
+
+    <div class="summary-box" id="summary-box"></div>
+
+    <div class="section-divider">ดาวน์โหลด Excel</div>
+
+    <button class="action-btn act-excel" onclick="downloadExcelSummary()">
+      📥 Excel สรุปผลตรวจ
+    </button>
+    <button class="action-btn act-excel" onclick="downloadExcelSurvey()">
+      📥 Excel สำรวจราคา/ปริมาณ
+    </button>
+
+    <div class="section-divider">ส่ง Google Form</div>
+
+    <button class="action-btn act-form1" onclick="openForm1()">
+      🔗 Form: ดีเซลเกินราคา (≥35 บ.)
+    </button>
+    <button class="action-btn act-form2" onclick="openForm2()">
+      🔗 Form: ราคาสูงผิดปกติ
+    </button>
+
+    <button class="btn btn-secondary btn-full" onclick="goStep(1)">
+      + เพิ่มสถานีใหม่
+    </button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---- STATE ----
+const fuels = [
+  { id: 'diesel',  name: 'ดีเซล',         color: '#f59e0b' },
+  { id: 'e91',     name: 'แก๊สโซฮอล์ 91', color: '#3b82f6' },
+  { id: 'e95',     name: 'แก๊สโซฮอล์ 95', color: '#8b5cf6' },
+  { id: 'benzin',  name: 'เบนซิน 95',      color: '#ef4444' },
+];
+
+let currentStep = 1;
+let fuelStatus = {};
+let radioVals = {};
+
+// ---- INIT ----
+document.addEventListener('DOMContentLoaded', () => {
+  // Set today's date
+  document.getElementById('f_date').value = new Date().toISOString().split('T')[0];
+
+  // Build fuel cards
+  const container = document.getElementById('fuel-cards');
+  fuels.forEach(f => {
+    fuelStatus[f.id] = 'ปกติ';
+    container.innerHTML += `
+      <div class="fuel-card">
+        <div class="fuel-name">
+          <span class="fuel-dot" style="background:${f.color}"></span>
+          ${f.name}
+        </div>
+        <div class="fuel-row">
+          <div class="field">
+            <label>ราคา (บาท/ลิตร)</label>
+            <input type="number" id="price_${f.id}" placeholder="0.00" step="0.01">
+          </div>
+          <div class="field">
+            <label>คงเหลือ (ลิตร)</label>
+            <input type="number" id="remain_${f.id}" placeholder="0">
+          </div>
+        </div>
+        <div class="status-row">
+          <div class="status-btn s-normal active" id="s_${f.id}_normal" onclick="setStatus('${f.id}','ปกติ')">ปกติ</div>
+          <div class="status-btn s-low" id="s_${f.id}_low" onclick="setStatus('${f.id}','ใกล้หมด')">ใกล้หมด</div>
+          <div class="status-btn s-empty" id="s_${f.id}_empty" onclick="setStatus('${f.id}','หมด')">หมด</div>
+        </div>
+      </div>`;
+  });
+
+  // Status toggle show/hide close detail
+  document.querySelectorAll('input[name="status"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('close-detail').style.display = r.value === 'ปิด' ? 'block' : 'none';
+    });
+  });
+
+  // Queue count
+  document.querySelectorAll('input[name="queue"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('queue-count-box').style.display = r.value === 'มีคิว' ? 'block' : 'none';
+    });
+  });
+
+  // Cause other
+  document.querySelectorAll('input[name="cause"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('cause-other-box').style.display = r.value === 'อื่น ๆ' ? 'block' : 'none';
+    });
+  });
+});
+
+function setStatus(fuelId, status) {
+  fuelStatus[fuelId] = status;
+  ['normal','low','empty'].forEach(s => {
+    document.getElementById(`s_${fuelId}_${s}`).classList.remove('active');
+  });
+  const map = { 'ปกติ':'normal', 'ใกล้หมด':'low', 'หมด':'empty' };
+  document.getElementById(`s_${fuelId}_${map[status]}`).classList.add('active');
+}
+
+function selectRadio(el, name, val) {
+  document.querySelectorAll(`[name="${name}"]`).forEach(r => {
+    r.closest('.radio-btn').classList.remove('selected');
+  });
+  el.classList.add('selected');
+  radioVals[name] = val;
+}
+
+function getGPS() {
+  if (!navigator.geolocation) { showToast('เบราว์เซอร์ไม่รองรับ GPS'); return; }
+  showToast('⏳ กำลังดึงพิกัด...');
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude.toFixed(6);
+    const lng = pos.coords.longitude.toFixed(6);
+    document.getElementById('f_coords').value = `${lat}, ${lng}`;
+    showToast('✅ ได้พิกัดแล้ว');
+  }, () => showToast('ไม่สามารถดึงพิกัดได้'));
+}
+
+function goStep(n) {
+  document.getElementById(`step${currentStep}`).classList.remove('active');
+  currentStep = n;
+  document.getElementById(`step${n}`).classList.add('active');
+  document.getElementById('step-info').textContent = `ขั้นตอน ${n} จาก 4`;
+  document.getElementById('progress').style.width = (n * 25) + '%';
+  window.scrollTo(0, 0);
+  if (n === 4) buildSummary();
+}
+
+function getData() {
+  return {
+    date: document.getElementById('f_date').value,
+    time: document.getElementById('f_time').value,
+    province: document.getElementById('f_province').value,
+    officer: document.getElementById('f_officer').value,
+    station: document.getElementById('f_station').value,
+    subdistrict: document.getElementById('f_subdistrict').value,
+    district: document.getElementById('f_district').value,
+    phone: document.getElementById('f_phone').value,
+    company: document.getElementById('f_company').value,
+    trader: radioVals['trader'] || '',
+    coords: document.getElementById('f_coords').value,
+    status: radioVals['status'] || 'เปิด',
+    closedays: radioVals['closedays'] || '',
+    cause: radioVals['cause'] || '',
+    cause_other: document.getElementById('f_cause_other').value,
+    queue: radioVals['queue'] || '',
+    queue_count: document.getElementById('f_queue_count').value,
+    nearby: radioVals['nearby'] || '',
+    diesel_price: document.getElementById('f_diesel_price').value,
+    remark: document.getElementById('f_remark').value,
+    fuels: fuels.map(f => ({
+      name: f.name,
+      price: document.getElementById(`price_${f.id}`).value,
+      remain: document.getElementById(`remain_${f.id}`).value,
+      status: fuelStatus[f.id]
+    }))
+  };
+}
+
+function buildSummary() {
+  const d = getData();
+  const fuelRows = d.fuels.map(f =>
+    `<div class="summary-row"><span>${f.name}</span><span class="summary-val">${f.price ? f.price+' บ.' : '-'} | ${f.status}</span></div>`
+  ).join('');
+  document.getElementById('summary-box').innerHTML = `
+    <div class="summary-title">ข้อมูลที่จะส่ง</div>
+    <div class="summary-row"><span>วันที่</span><span class="summary-val">${d.date} ${d.time}</span></div>
+    <div class="summary-row"><span>สถานี</span><span class="summary-val">${d.station || '-'}</span></div>
+    <div class="summary-row"><span>จังหวัด</span><span class="summary-val">${d.province || '-'}</span></div>
+    <div class="summary-row"><span>สถานะ</span><span class="summary-val">${d.status}${d.closedays ? ' ('+d.closedays+')' : ''}</span></div>
+    ${fuelRows}
+    <div class="summary-row"><span>สาเหตุ</span><span class="summary-val">${d.cause || '-'}</span></div>
+  `;
+}
+
+// ---- EXCEL SUMMARY (สรุปผลตรวจสอบ 5 ภาค) ----
+function downloadExcelSummary() {
+  const d = getData();
+  const wb = XLSX.utils.book_new();
+  const regions = ['กรุงเทพฯ','ภาคกลาง','ภาคอีสาน','ภาคเหนือ','ภาคใต้'];
+  const regionMap = {
+    'กรุงเทพมหานคร':'กรุงเทพฯ',
+    'นนทบุรี':'กรุงเทพฯ','ปทุมธานี':'กรุงเทพฯ','สมุทรปราการ':'กรุงเทพฯ',
+    'นครราชสีมา':'ภาคอีสาน','ขอนแก่น':'ภาคอีสาน','อุดรธานี':'ภาคอีสาน',
+    'อุบลราชธานี':'ภาคอีสาน','สกลนคร':'ภาคอีสาน','นครพนม':'ภาคอีสาน',
+    'มุกดาหาร':'ภาคอีสาน','กาฬสินธุ์':'ภาคอีสาน','ร้อยเอ็ด':'ภาคอีสาน',
+    'มหาสารคาม':'ภาคอีสาน','บุรีรัมย์':'ภาคอีสาน','สุรินทร์':'ภาคอีสาน',
+    'ศรีสะเกษ':'ภาคอีสาน','ยโสธร':'ภาคอีสาน','อำนาจเจริญ':'ภาคอีสาน',
+    'บึงกาฬ':'ภาคอีสาน','หนองคาย':'ภาคอีสาน','หนองบัวลำภู':'ภาคอีสาน',
+    'เลย':'ภาคอีสาน','ชัยภูมิ':'ภาคอีสาน',
+    'เชียงใหม่':'ภาคเหนือ','เชียงราย':'ภาคเหนือ','ลำปาง':'ภาคเหนือ',
+    'ลำพูน':'ภาคเหนือ','แม่ฮ่องสอน':'ภาคเหนือ','พะเยา':'ภาคเหนือ',
+    'น่าน':'ภาคเหนือ','แพร่':'ภาคเหนือ','พิษณุโลก':'ภาคเหนือ',
+    'อุตรดิตถ์':'ภาคเหนือ','ตาก':'ภาคเหนือ','กำแพงเพชร':'ภาคเหนือ',
+    'สุโขทัย':'ภาคเหนือ','พิจิตร':'ภาคเหนือ','เพชรบูรณ์':'ภาคเหนือ','นครสวรรค์':'ภาคเหนือ',
+    'สงขลา':'ภาคใต้','สุราษฎร์ธานี':'ภาคใต้','นครศรีธรรมราช':'ภาคใต้',
+    'ภูเก็ต':'ภาคใต้','กระบี่':'ภาคใต้','พังงา':'ภาคใต้','ตรัง':'ภาคใต้',
+    'พัทลุง':'ภาคใต้','ชุมพร':'ภาคใต้','ระนอง':'ภาคใต้','สตูล':'ภาคใต้',
+    'ปัตตานี':'ภาคใต้','ยะลา':'ภาคใต้','นราธิวาส':'ภาคใต้','ตราด':'ภาคใต้',
+  };
+  const targetRegion = regionMap[d.province] || 'ภาคกลาง';
+  const headers = ['ลำดับที่','ชื่อสถานี','ตำบล/แขวง','อำเภอ/เขต','จังหวัด','เบอร์โทรศัพท์','พิกัด','เปิด/ปิด','จำนวนวันที่ปิด','ประเภทผู้ค้า','ดีเซล','แก๊สโซฮอล์ 91','แก๊สโซฮอล์ 95','เบนซิน','ปัญหาการขาดแคลน','คิวซื้อน้ำมัน','ปั๊มใกล้เคียง','หมายเหตุ'];
+  const row = [
+    1,
+    d.station, d.subdistrict, d.district, d.province, d.phone, d.coords,
+    d.status, d.closedays, d.trader,
+    d.fuels[0].status, d.fuels[1].status, d.fuels[2].status, d.fuels[3].status,
+    d.cause !== 'อื่น ๆ' ? d.cause : d.cause_other,
+    d.queue + (d.queue_count ? ' ('+d.queue_count+' คัน)' : ''),
+    d.nearby,
+    d.remark
+  ];
+
+  regions.forEach(region => {
+    const wsData = [
+      ['สรุปผลการตรวจสอบสถานีบริการน้ำมันกรณีขาดแคลนน้ำมันเชื้อเพลิง'],
+      [],
+      headers,
+    ];
+    if (region === targetRegion) wsData.push(row);
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = headers.map(() => ({ wch: 18 }));
+    XLSX.utils.book_append_sheet(wb, ws, region);
+  });
+
+  XLSX.writeFile(wb, `สรุปตรวจสอบ_${d.station || 'สถานี'}_${d.date}.xlsx`);
+  showToast('✅ ดาวน์โหลด Excel สรุปผลแล้ว');
+}
+
+// ---- EXCEL SURVEY (สำรวจราคา/ปริมาณ) ----
+function downloadExcelSurvey() {
+  const d = getData();
+  const wb = XLSX.utils.book_new();
+
+  // Sheet: แบบ 1 ราคาสูง
+  const headers1 = ['ลำดับ','ชื่อสถานีบริการ','เลขทะเบียน ม.11','ที่ตั้ง','link google map','ละติจูด,ลองจิจูด','แก๊สโซฮอล์ 95','แก๊สโซฮอล์ 91','เบนซิน 95','ดีเซล','ผลการตรวจสอบ','หมายเหตุ'];
+  const row1 = [
+    1, d.station, '', `${d.subdistrict} ${d.district} ${d.province}`,
+    `https://www.google.com/maps/search/?api=1&query=${d.coords.replace(' ','')}`,
+    d.coords,
+    d.fuels[2].price, d.fuels[1].price, d.fuels[3].price, d.fuels[0].price,
+    d.remark, ''
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet([
+    ['แบบสำรวจราคาจำหน่ายน้ำมันเชื้อเพลิง ณ สถานีบริการ (ราคาสูงผิดปกติ)  จังหวัด ' + d.province],
+    [], headers1, row1
+  ]);
+  ws1['!cols'] = headers1.map(() => ({ wch: 20 }));
+  XLSX.utils.book_append_sheet(wb, ws1, 'แบบน้ำมันเชื้อเพลิง 1');
+
+  // Sheet: แบบ 2 ปริมาณจัดหา
+  const headers2 = ['ลำดับ','ชื่อสถานประกอบการ','เลขทะเบียน ม.11','ที่ตั้ง','link google map','ละติจูด,ลองจิจูด','แก๊สโซฮอล์ 95/เดือน','แก๊สโซฮอล์ 91/เดือน','เบนซิน/เดือน','ดีเซล/เดือน','ชื่อผู้จำหน่าย','ประเภทผู้ค้า','หมายเหตุ'];
+  const row2 = [
+    1, d.station, '', `${d.subdistrict} ${d.district} ${d.province}`,
+    `https://www.google.com/maps/search/?api=1&query=${d.coords.replace(' ','')}`,
+    d.coords,
+    '', '', '', '',
+    d.company, d.trader, d.remark
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet([
+    ['แบบสำรวจปริมาณการจัดหาน้ำมันเชื้อเพลิงเพื่อการจำหน่าย  จังหวัด ' + d.province],
+    [], headers2, row2
+  ]);
+  ws2['!cols'] = headers2.map(() => ({ wch: 20 }));
+  XLSX.utils.book_append_sheet(wb, ws2, 'แบบน้ำมันเชื้อเพลิง 2');
+
+  XLSX.writeFile(wb, `สำรวจราคา_${d.station || 'สถานี'}_${d.date}.xlsx`);
+  showToast('✅ ดาวน์โหลด Excel สำรวจแล้ว');
+}
+
+// ---- GOOGLE FORM 1: ดีเซลเกินราคา ----
+function openForm1() {
+  const d = getData();
+  const dateStr = d.date ? formatDateUS(d.date) : '';
+  const price = d.diesel_price || d.fuels[0].price || '';
+  const location = `${d.station} ${d.subdistrict} ${d.district} ${d.province} ${d.coords}`.trim();
+  const cause = d.cause !== 'อื่น ๆ' ? d.cause : d.cause_other;
+  const action = d.remark || '';
+
+  // Pre-fill Google Form via URL params
+  // entry IDs mapped from the form structure
+  const params = new URLSearchParams({
+    'entry.1166974500': mapProvince(d.province),   // จังหวัด
+    'entry.1228565738': dateStr,                    // วันที่
+    'entry.671006502':  price,                      // ราคาดีเซล
+    'entry.495085411':  cause,                      // สาเหตุ
+    'entry.1502927568': location,                   // ชื่อสถานีและที่ตั้ง
+    'entry.584532945':  action,                     // การดำเนินการ สพจ.
+  });
+  window.open(`https://docs.google.com/forms/d/e/1FAIpQLSeu6IauVNuT1e4D1jIIEN66IyY19D3diz7-8jSeNd3VsMo-CQ/viewform?${params}`, '_blank');
+  showToast('✅ เปิด Form ดีเซลเกินราคาแล้ว');
+}
+
+// ---- GOOGLE FORM 2: ราคาสูงผิดปกติ ----
+function openForm2() {
+  const d = getData();
+  const location = `${d.station} ${d.subdistrict} ${d.district} ${d.province} ${d.coords}`.trim();
+  const cause = d.cause !== 'อื่น ๆ' ? d.cause : d.cause_other;
+  const params = new URLSearchParams({
+    'entry.province':   d.province,
+    'entry.date':       d.date,
+    'entry.station':    location,
+    'entry.cause':      cause,
+    'entry.remark':     d.remark,
+  });
+  window.open(`https://docs.google.com/forms/d/e/1FAIpQLSfyzMoz1_vh8ket7simts0xTLX_Gy9sm1NWjQSkqdfqJGyRPQ/viewform?${params}`, '_blank');
+  showToast('✅ เปิด Form ราคาสูงผิดปกติแล้ว');
+}
+
+function formatDateUS(dateStr) {
+  const [y, m, day] = dateStr.split('-');
+  return `${m}/${day}/${y}`;
+}
+
+function mapProvince(p) {
+  const map = {
+    'กรุงเทพมหานคร': 'จังหวัดกรุงเทพมหานคร',
+  };
+  // Form uses "จังหวัด + ชื่อ" format
+  return 'จังหวัด' + p;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
